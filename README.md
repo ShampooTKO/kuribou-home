@@ -1,11 +1,15 @@
-# 有限会社くりぼう ホームページ｜自動デプロイ設定
+# 有限会社くりぼう ホームページ
 
-main ブランチに push すると、`public/` の中身がさくらのレンタルサーバへ自動でアップロードされます。
+**公開URL:** https://shampootko.github.io/kuribou-home/
+
+`main` ブランチに push すると、`public/` の中身が GitHub Pages として自動公開されます。
 
 ```
-kuribou-site/
-├─ .github/workflows/deploy.yml   ← 自動デプロイの設定（さくらには上がりません）
-├─ public/                        ← この中だけがサーバーへ上がります
+kuribou-home/
+├─ .github/workflows/
+│   ├─ pages.yml    ← GitHub Pages への自動公開（稼働中）
+│   └─ deploy.yml   ← さくらへのFTP転送（手動実行のみ・予備）
+├─ public/          ← この中だけが公開されます
 │   ├─ index.html
 │   └─ assets/
 │       ├─ bg-hero.jpg
@@ -16,7 +20,56 @@ kuribou-site/
 
 ---
 
-## セットアップ（初回のみ・所要15分ほど）
+## 初回のみ必要な設定
+
+リポジトリの **Settings → Pages → Build and deployment → Source** を
+**「GitHub Actions」** に変更してください。これだけです。
+
+変更後、Actions タブから `Deploy to GitHub Pages` を再実行すると公開されます。
+
+---
+
+## 更新のしかた
+
+`public/index.html` を編集して push するだけです。
+
+```bash
+git add public
+git commit -m "お問い合わせ先を更新"
+git push
+```
+
+1〜2分で公開サイトに反映されます。
+
+---
+
+## 独自ドメイン（kuribow.com）を使う場合
+
+GitHub Pages は独自ドメインに対応しています。設定するとURLが
+`https://kuribow.com/` になり、HTTPS証明書も自動で発行されます。
+
+**メールはさくらのまま使えます。** Webだけを GitHub に向け、メールの
+MXレコードはさくらに残す形になります。
+
+手順の概要：
+
+1. さくらのコントロールパネル →「ドメイン/SSL」→ 対象ドメインの「DNSレコード」で、
+   Aレコードを GitHub Pages の4つのIPアドレスへ向ける
+   （`185.199.108.153` / `185.199.109.153` / `185.199.110.153` / `185.199.111.153`）
+2. `public/CNAME` というファイルを作り、中身に `kuribow.com` とだけ書いて push
+3. Settings → Pages → Custom domain に `kuribow.com` を入力
+4. DNS が反映されたら「Enforce HTTPS」にチェック
+
+MXレコードは触らないでください。触るとメールが止まります。
+
+---
+
+## さくらへ切り替えたい場合
+
+WordPressブログを同じドメインで運用するなど、さくらに戻す必要が出たときは、
+`.github/workflows/deploy.yml` を使います。手順は以下のとおりです。
+
+### さくらへ切り替える手順（所要15分ほど）
 
 ### STEP 1　さくら側でアップロード先のパスを確認する
 

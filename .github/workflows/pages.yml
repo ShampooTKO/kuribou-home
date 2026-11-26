@@ -18,27 +18,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Pages へ公開
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # アップロードと公開を別ジョブに分ける。
+  # 同一ジョブ内で続けて実行すると、アップロード直後はまだ
+  # アーティファクトの索引付けが終わっておらず、公開側が
+  # 「No artifacts named github-pages」で失敗することがあるため。
+  build:
+    name: サイトを組み立てる
     runs-on: ubuntu-latest
     steps:
       - name: リポジトリを取得
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Pages を有効化して設定を読み込み
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
-          # リポジトリで Pages が未設定でも、ここで自動的に有効化する
           enablement: true
 
       - name: public/ をアップロード
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./public
 
+  deploy:
+    name: Pages へ公開
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: 公開
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      # 索引付けが間に合わなかった場合のみ、時間を置いて1回だけやり直す。
+      # アップロードは絶対にやり直さないこと（同名が2つになり必ず失敗する）。
+      - name: 索引付けを待つ
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - name: 公開（再試行）
+        id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v5

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://shampootko.github.io/kuribou-home/sitemap.xml
+Sitemap: https://kuribow.com/sitemap.xml
